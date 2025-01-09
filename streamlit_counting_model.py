@@ -2,21 +2,21 @@ import streamlit as st
 import numpy as np
 import scipy.sparse as sp
 import joblib
-import pickle
 import re
-from sklearn.feature_extraction.text import TfidfVectorizer
+import pickle
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
 
-# ==========================
-# 1. Load Model and Vectorizer
-# ==========================
-# Load trained model
-model_file = 'lightgbm_model.pkl'  # Replace with your best model filename
+# Load Model and Vectorizer
+model_file = 'lightgbm_model.pkl'
+vectorizer_file = 'vectorizer.pkl'
+scaler_file = 'scaler.pkl'
+
 # Load TfidfVectorizer yang disimpan dengan joblib.dump()
 with open('vectorizer.pkl', 'rb') as f:
     vectorizer = pickle.load(f)
-scaler_file = 'scaler.pkl'
+
+# Load Model dan Scaler
 model = joblib.load(model_file)
 scaler = joblib.load(scaler_file)
 
@@ -36,12 +36,9 @@ domain_mapping = {
     'haibunda.com': 3,
 }
 
-# ==========================
-# 2. Preprocessing Function
-# ==========================
+# Preprocessing Function
 stemmer = StemmerFactory().create_stemmer()
 stop_words_id = set(StopWordRemoverFactory().get_stop_words())
-
 def preprocess_text(text):
     text = re.sub(r'http\S+|https\S+|www\S+|ftp\S+', '', text)
     text = re.sub(r'[^\w\s]', '', text.lower())
@@ -50,10 +47,9 @@ def preprocess_text(text):
     tokens = [stemmer.stem(token) for token in tokens]
     return ' '.join(tokens)
 
-# ==========================
-# 3. Streamlit Interface
-# ==========================
+# Streamlit Interface
 st.title("Prediksi Impression dengan Streamlit")
+
 # Input text
 user_text = st.text_area("Masukkan Teks Artikel")
 retweets = st.number_input("Masukkan Jumlah Retweets", min_value=0, value=0, step=1)
@@ -70,15 +66,21 @@ if st.button("Prediksi"):
         else:
             # TF-IDF transform
             text_vector = vectorizer.transform([processed_text])
+            
             # Encode domain
             encoded_domain = sp.csr_matrix([[domain_mapping[domain]]])
+            
             # Retweets sparse matrix
             retweets_sparse = sp.csr_matrix([[retweets]])
+            
             # Combine features
             input_features = sp.hstack([text_vector, encoded_domain, retweets_sparse])
+            
             scaled_features = scaler.transform(input_features)
+            
             # Predict
             prediction = model.predict(scaled_features)
+            
             # Display prediction
             st.success(f"Prediksi Impression: {prediction[0]:,.0f}")
     else:
