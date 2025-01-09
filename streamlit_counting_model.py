@@ -13,8 +13,7 @@ vectorizer_file = 'vectorizer.pkl'
 scaler_file = 'scaler.pkl'
 
 # Load TfidfVectorizer yang disimpan dengan joblib.dump()
-with open('vectorizer.pkl', 'rb') as f:
-    vectorizer = pickle.load(f)
+vectorizer = joblib.load(vectorizer_file)
 
 # Load Model dan Scaler
 model = joblib.load(model_file)
