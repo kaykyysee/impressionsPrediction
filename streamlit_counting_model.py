@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 import scipy.sparse as sp
 import joblib
+import pickle
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
@@ -12,10 +13,11 @@ from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFacto
 # ==========================
 # Load trained model
 model_file = 'lightgbm_model.pkl'  # Replace with your best model filename
-vectorizer_file = 'vectorizer.pkl'
+# Load TfidfVectorizer yang disimpan dengan joblib.dump()
+with open('vectorizer.pkl', 'rb') as f:
+    vectorizer = pickle.load(f)
 scaler_file = 'scaler.pkl'
 model = joblib.load(model_file)
-vectorizer = joblib.load(vectorizer_file)
 scaler = joblib.load(scaler_file)
 
 # Domain mapping
