@@ -47,7 +47,7 @@ def preprocess_text(text):
     return ' '.join(tokens)
 
 # Streamlit Interface
-st.title("Prediksi Impression dengan Streamlit")
+st.title("Prediksi Impression Pembaca Berita Detikcom")
 
 # Input text
 user_text = st.text_area("Masukkan Teks Artikel")
