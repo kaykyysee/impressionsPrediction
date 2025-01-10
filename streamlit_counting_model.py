@@ -10,7 +10,7 @@ from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFacto
 # Load Model and Vectorizer
 # ==========================
 model_file = 'lightgbm_model.pkl'
-vectorizer_file = 'vectorizer.pkl'
+vectorizer_file = 'vectorizer_tf.pkl'
 scaler_file = 'scaler.pkl'
 
 # Load TfidfVectorizer yang disimpan dengan joblib.dump()
