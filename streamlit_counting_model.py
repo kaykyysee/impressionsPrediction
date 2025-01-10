@@ -3,7 +3,6 @@ import numpy as np
 import scipy.sparse as sp
 import joblib
 import re
-import pickle
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
 
@@ -48,6 +47,21 @@ def preprocess_text(text):
 
 # Streamlit Interface
 st.title("Prediksi Impression Pembaca Berita Detikcom")
+
+# Debugging Section: Display vectorizer attributes
+st.subheader("Debugging Vectorizer")
+if hasattr(vectorizer, 'idf_'):
+    st.write("Vectorizer sudah ditraining.")
+    st.write("Jumlah Vocabulary:", len(vectorizer.vocabulary_))
+    st.write("Contoh IDF:")
+    idf_data = {
+        "Kata": list(vectorizer.vocabulary_.keys())[:10],
+        "Index": list(vectorizer.vocabulary_.values())[:10],
+        "IDF": [vectorizer.idf_[i] for i in list(vectorizer.vocabulary_.values())[:10]]
+    }
+    st.dataframe(pd.DataFrame(idf_data))
+else:
+    st.error("Vectorizer belum ditraining.")
 
 # Input text
 user_text = st.text_area("Masukkan Teks Artikel")
