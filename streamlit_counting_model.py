@@ -44,10 +44,10 @@ def preprocess_text(text):
 # ==========================
 # 3. Streamlit Interface
 # ==========================
-st.title("Prediksi Impression dengan BERT")
+st.title("Prediksi Impression Pembaca Postingan Berita Detik.com")
 
 # Input text
-user_text = st.text_area("Masukkan Teks Artikel")
+user_text = st.text_area("Masukkan Teks Postingan X")
 retweets = st.number_input("Masukkan Jumlah Retweets", min_value=0, value=0, step=1)
 domain = st.selectbox("Pilih Domain", options=list(domain_mapping.keys()))
 
@@ -76,6 +76,6 @@ if st.button("Prediksi"):
 
         # Predict
         prediction = model.predict(scaled_features)
-        st.success(f"Prediksi Impression: {prediction[0]:,.0f}")
+        st.success(f"Perkiraan pembaca sebanyak: {prediction[0]:,.0f} orang")
     else:
         st.warning("Tolong masukkan teks untuk prediksi.")
