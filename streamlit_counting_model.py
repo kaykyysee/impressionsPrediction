@@ -10,7 +10,7 @@ from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFacto
 # Load Model and Vectorizer
 # ==========================
 model_file = 'lightgbm_model.pkl'
-with open(vectorizer_file, 'rb') as f:
+with open(vectorizer_tf, 'rb') as f:
     vectorizer_data = pickle.load(f)
     vectorizer = tf.keras.layers.TextVectorization.from_config(vectorizer_data['config'])
     vectorizer.set_weights(vectorizer_data['weights'])
