@@ -1,22 +1,21 @@
 import streamlit as st
 import numpy as np
-import scipy.sparse as sp
 import joblib
 import re
-from sklearn.feature_extraction.text import TfidfVectorizer
-from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
-from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
+from sentence_transformers import SentenceTransformer
+import scipy.sparse as sp
 
 # ==========================
-# 1. Load Model and Vectorizer
+# 1. Load Model dan BERT
 # ==========================
-# Load trained model
-model_file = 'lightgbm_model.pkl'  # Replace with your best model filename
-vectorizer_file = 'vectorizer.pkl'
+model_file = 'lightgbm_model.pkl'
 scaler_file = 'scaler.pkl'
+
 model = joblib.load(model_file)
-vectorizer = joblib.load(vectorizer_file)
 scaler = joblib.load(scaler_file)
+
+# Load pre-trained BERT model
+bert_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 
 # Domain mapping
 domain_mapping = {
@@ -37,21 +36,16 @@ domain_mapping = {
 # ==========================
 # 2. Preprocessing Function
 # ==========================
-stemmer = StemmerFactory().create_stemmer()
-stop_words_id = set(StopWordRemoverFactory().get_stop_words())
-
 def preprocess_text(text):
     text = re.sub(r'http\S+|https\S+|www\S+|ftp\S+', '', text)
     text = re.sub(r'[^\w\s]', '', text.lower())
-    tokens = text.split()
-    tokens = [token for token in tokens if token not in stop_words_id]
-    tokens = [stemmer.stem(token) for token in tokens]
-    return ' '.join(tokens)
+    return text
 
 # ==========================
 # 3. Streamlit Interface
 # ==========================
-st.title("Prediksi Impression dengan Streamlit")
+st.title("Prediksi Impression dengan BERT")
+
 # Input text
 user_text = st.text_area("Masukkan Teks Artikel")
 retweets = st.number_input("Masukkan Jumlah Retweets", min_value=0, value=0, step=1)
@@ -61,23 +55,27 @@ if st.button("Prediksi"):
     if user_text.strip():
         # Preprocess text
         processed_text = preprocess_text(user_text)
-        
-        # Periksa apakah vectorizer telah ditrain
-        if not hasattr(vectorizer, 'idf_'):
-            st.warning("Vectorizer belum ditrain. Silakan train vectorizer terlebih dahulu.")
-        else:
-            # TF-IDF transform
-            text_vector = vectorizer.transform([processed_text])
-            # Encode domain
-            encoded_domain = sp.csr_matrix([[domain_mapping[domain]]])
-            # Retweets sparse matrix
-            retweets_sparse = sp.csr_matrix([[retweets]])
-            # Combine features
-            input_features = sp.hstack([text_vector, encoded_domain, retweets_sparse])
-            scaled_features = scaler.transform(input_features)
-            # Predict
-            prediction = model.predict(scaled_features)
-            # Display prediction
-            st.success(f"Prediksi Impression: {prediction[0]:,.0f}")
+        text_length = len(processed_text)
+
+        # Convert text to BERT embeddings
+        text_embedding = bert_model.encode([processed_text])
+        text_sparse = sp.csr_matrix(text_embedding)
+
+        # Encode domain
+        encoded_domain = sp.csr_matrix([[domain_mapping[domain]]])
+
+        # Retweets sparse matrix
+        retweets_sparse = sp.csr_matrix([[retweets]])
+
+        # Length sparse matrix
+        length_sparse = sp.csr_matrix([[text_length]])
+
+        # Combine features
+        input_features = sp.hstack([text_sparse, encoded_domain, retweets_sparse, length_sparse])
+        scaled_features = scaler.transform(input_features)
+
+        # Predict
+        prediction = model.predict(scaled_features)
+        st.success(f"Prediksi Impression: {prediction[0]:,.0f}")
     else:
         st.warning("Tolong masukkan teks untuk prediksi.")
