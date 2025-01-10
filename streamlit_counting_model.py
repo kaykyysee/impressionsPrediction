@@ -10,7 +10,10 @@ from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFacto
 # Load Model and Vectorizer
 # ==========================
 model_file = 'lightgbm_model.pkl'
-vectorizer_file = 'vectorizer_tf.pkl'
+with open(vectorizer_file, 'rb') as f:
+    vectorizer_data = pickle.load(f)
+    vectorizer = tf.keras.layers.TextVectorization.from_config(vectorizer_data['config'])
+    vectorizer.set_weights(vectorizer_data['weights'])
 scaler_file = 'scaler.pkl'
 
 # Load TfidfVectorizer yang disimpan dengan joblib.dump()
