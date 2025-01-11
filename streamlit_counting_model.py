@@ -4,10 +4,17 @@ import joblib
 import re
 from sentence_transformers import SentenceTransformer
 import scipy.sparse as sp
+import nltk
 from nltk.tokenize import word_tokenize
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
 import string
+
+# Unduh dataset punkt jika belum tersedia
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
 
 # ==========================
 # 1. Fungsi Caching untuk Model dan SentenceTransformer
