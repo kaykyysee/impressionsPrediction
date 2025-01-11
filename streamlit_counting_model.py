@@ -4,6 +4,10 @@ import joblib
 import re
 from sentence_transformers import SentenceTransformer
 import scipy.sparse as sp
+from nltk.tokenize import word_tokenize
+from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
+from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
+import string
 
 # ==========================
 # 1. Fungsi Caching untuk Model dan SentenceTransformer
@@ -44,16 +48,45 @@ domain_mapping = {
 }
 
 # ==========================
-# 3. Fungsi Preprocessing dan Caching untuk Embedding
+# 3. Fungsi Preprocessing dan Pembersihan Teks
 # ==========================
 @st.cache_data
 def preprocess_text(text):
     """
     Preprocessing teks untuk menghapus URL, tanda baca, dan huruf besar.
     """
-    text = re.sub(r'http\S+|https\S+|www\S+|ftp\S+', '', text)  # Remove URLs
-    text = re.sub(r'[\^\w\s]', '', text.lower())  # Remove punctuation and lowercase
+    # Hapus URL
+    text = re.sub(r'http\S+|https\S+|www\S+|ftp\S+', '', text)  # Hapus URL
+    text = re.sub(r'\b[a-zA-Z0-9]+\.com\S*', '', text)  # Hapus domain seperti example.com/link
+    text = re.sub(r'\b[a-zA-Z0-9]+detikcom\S*', '', text)  # Hapus detikcom yang berubah format
+
+    # Hapus tanda baca dan ubah teks menjadi huruf kecil
+    text = text.translate(str.maketrans('', '', string.punctuation)).lower()
+
+    # Hapus spasi berlebih
+    text = re.sub(r'\s+', ' ', text).strip()
+
+    # Hapus spasi berlebih setelah tagar
+    text = re.sub(r'#(\s+)', '#', text)
+
     return text
+
+@st.cache_data
+def clean_text_id(text):
+    """
+    Fungsi untuk membersihkan teks, menghapus stop words, dan melakukan stemming.
+    """
+    # Tokenisasi dan pembersihan
+    tokens = word_tokenize(text)
+
+    # Inisialisasi stop words dan stemmer
+    stop_words_id = set(StopWordRemoverFactory().get_stop_words())
+    stemmer = StemmerFactory().create_stemmer()
+
+    # Hapus stop words dan lakukan stemming
+    tokens = [stemmer.stem(word) for word in tokens if word not in stop_words_id]
+
+    return ' '.join(tokens)
 
 @st.cache_data
 def get_text_embedding(processed_text):
@@ -75,12 +108,14 @@ domain = st.selectbox("Pilih Domain", options=list(domain_mapping.keys()))
 if st.button("Prediksi"):
     if user_text.strip():
         # Preprocess text
+        st.write("Melakukan preprocessing teks...")
         processed_text = preprocess_text(user_text)
-        text_length = len(processed_text)
+        cleaned_text = clean_text_id(processed_text)
+        text_length = len(cleaned_text)
 
         # Convert text to BERT embeddings
         st.write("Menghasilkan embedding...")
-        text_embedding = get_text_embedding(processed_text)
+        text_embedding = get_text_embedding(cleaned_text)
         text_sparse = sp.csr_matrix(text_embedding)
 
         # Encode domain
