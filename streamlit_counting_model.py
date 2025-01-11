@@ -2,11 +2,12 @@ import streamlit as st
 import numpy as np
 import joblib
 import re
-from sentence_transformers import SentenceTransformer
+from transformers import AutoTokenizer, AutoModel
+import torch
 import scipy.sparse as sp
 
 # ==========================
-# 1. Load Model dan BERT
+# 1. Load Model dan IndoBERT
 # ==========================
 model_file = 'lightgbm_model.pkl'
 scaler_file = 'scaler.pkl'
@@ -14,8 +15,10 @@ scaler_file = 'scaler.pkl'
 model = joblib.load(model_file)
 scaler = joblib.load(scaler_file)
 
-# Load pre-trained BERT model
-bert_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+# Load pre-trained IndoBERT model dan tokenizer
+model_name = "indobenchmark/indobert-base-p2"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+indobert_model = AutoModel.from_pretrained(model_name)
 
 # Domain mapping
 domain_mapping = {
@@ -34,12 +37,27 @@ domain_mapping = {
 }
 
 # ==========================
-# 2. Preprocessing Function
+# 2. Fungsi Preprocessing dan Encoding
 # ==========================
 def preprocess_text(text):
-    text = re.sub(r'http\S+|https\S+|www\S+|ftp\S+', '', text)
-    text = re.sub(r'[^\w\s]', '', text.lower())
+    text = re.sub(r'http\S+|https\S+|www\S+|ftp\S+', '', text)  # Remove URLs
+    text = re.sub(r'[^\w\s]', '', text.lower())  # Remove punctuation and lowercase
     return text
+
+def encode_text_with_indobert(texts):
+    """
+    Fungsi untuk menghasilkan embedding menggunakan IndoBERT.
+    """
+    tokens = tokenizer(
+        texts,
+        padding=True,
+        truncation=True,
+        max_length=128,
+        return_tensors="pt"
+    )
+    with torch.no_grad():
+        outputs = indobert_model(**tokens)
+    return outputs.last_hidden_state[:, 0, :].cpu().numpy()  # CLS token
 
 # ==========================
 # 3. Streamlit Interface
@@ -57,8 +75,9 @@ if st.button("Prediksi"):
         processed_text = preprocess_text(user_text)
         text_length = len(processed_text)
 
-        # Convert text to BERT embeddings
-        text_embedding = bert_model.encode([processed_text])
+        # Convert text to IndoBERT embeddings
+        st.write("Menghasilkan embedding IndoBERT...")
+        text_embedding = encode_text_with_indobert([processed_text])
         text_sparse = sp.csr_matrix(text_embedding)
 
         # Encode domain
@@ -72,6 +91,10 @@ if st.button("Prediksi"):
 
         # Combine features
         input_features = sp.hstack([text_sparse, encoded_domain, retweets_sparse, length_sparse])
+        st.write("Dimensi input_features:", input_features.shape)
+        st.write("Scaler di-fit pada dimensi fitur:", scaler.n_features_in_)
+
+        # Scale features
         scaled_features = scaler.transform(input_features)
 
         # Predict
