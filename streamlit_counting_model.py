@@ -6,18 +6,28 @@ from sentence_transformers import SentenceTransformer
 import scipy.sparse as sp
 
 # ==========================
-# 1. Load Model dan BERT
+# 1. Fungsi Caching untuk Model dan SentenceTransformer
 # ==========================
-model_file = 'lightgbm_model.pkl'
-scaler_file = 'scaler.pkl'
+@st.cache_resource
+def load_model_and_bert():
+    model_file = 'lightgbm_model.pkl'
+    scaler_file = 'scaler.pkl'
 
-model = joblib.load(model_file)
-scaler = joblib.load(scaler_file)
+    # Load LightGBM model dan scaler
+    model = joblib.load(model_file)
+    scaler = joblib.load(scaler_file)
 
-# Load pre-trained BERT model
-bert_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+    # Load pre-trained BERT model
+    bert_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 
-# Domain mapping
+    return model, scaler, bert_model
+
+# Load sekali saja model dan SentenceTransformer
+model, scaler, bert_model = load_model_and_bert()
+
+# ==========================
+# 2. Domain Mapping
+# ==========================
 domain_mapping = {
     'news.detik.com': 7,
     'detik.com': 0,
@@ -34,15 +44,26 @@ domain_mapping = {
 }
 
 # ==========================
-# 2. Preprocessing Function
+# 3. Fungsi Preprocessing dan Caching untuk Embedding
 # ==========================
+@st.cache_data
 def preprocess_text(text):
-    text = re.sub(r'http\S+|https\S+|www\S+|ftp\S+', '', text)
-    text = re.sub(r'[^\w\s]', '', text.lower())
+    """
+    Preprocessing teks untuk menghapus URL, tanda baca, dan huruf besar.
+    """
+    text = re.sub(r'http\S+|https\S+|www\S+|ftp\S+', '', text)  # Remove URLs
+    text = re.sub(r'[\^\w\s]', '', text.lower())  # Remove punctuation and lowercase
     return text
 
+@st.cache_data
+def get_text_embedding(processed_text):
+    """
+    Menghasilkan embedding teks menggunakan SentenceTransformer.
+    """
+    return bert_model.encode([processed_text])
+
 # ==========================
-# 3. Streamlit Interface
+# 4. Streamlit Interface
 # ==========================
 st.title("Prediksi Impression Pembaca Postingan Berita Detik.com")
 
@@ -58,7 +79,8 @@ if st.button("Prediksi"):
         text_length = len(processed_text)
 
         # Convert text to BERT embeddings
-        text_embedding = bert_model.encode([processed_text])
+        st.write("Menghasilkan embedding...")
+        text_embedding = get_text_embedding(processed_text)
         text_sparse = sp.csr_matrix(text_embedding)
 
         # Encode domain
