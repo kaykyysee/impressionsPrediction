@@ -10,7 +10,6 @@ from nltk.tokenize import word_tokenize
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
 import string
-from catboost import CatBoostRegressor
 
 # Unduh dataset punkt jika belum tersedia
 try:
